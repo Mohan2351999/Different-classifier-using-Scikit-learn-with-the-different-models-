@@ -1,1 +1,40 @@
-sample
+import torch
+import torch.nn as nn
+
+class ConvSequential(nn.Sequential):
+    def __init__(self, in_channels, out_channels):
+        super(ConvSequential, self).__init__(
+            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=3),
+            nn.ReLU(inplace=True)
+        )
+
+# Define the model
+class ConvolutionalModel(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(ConvolutionalModel, self).__init__()
+        self.model = nn.Sequential()
+        current_channels = in_channels
+
+        # Add Conv3x3 layers with stride 3 until the output shape becomes 1
+        while True:
+            self.model.add_module(
+                f'conv{current_channels}_{out_channels}',
+                ConvSequential(current_channels, out_channels)
+            )
+            current_channels = out_channels
+
+            # Update the output shape
+            _, _, h, w = self.model(torch.zeros(1, current_channels, 224, 224)).shape
+            if h == 1 and w == 1:
+                break
+
+    def forward(self, x):
+        return self.model(x)
+
+# Example usage
+batch_size = 16
+channel_size = 3
+model = ConvolutionalModel(channel_size, 64)
+input_tensor = torch.randn(batch_size, channel_size, 224, 224)
+output_tensor = model(input_tensor)
+print(output_tensor.shape)
